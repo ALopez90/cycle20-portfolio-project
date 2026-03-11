@@ -3,8 +3,7 @@
     <div class="pm-header">
       <h2>Portfolio Manager</h2>
       <p>
-        A beginner-friendly CRUD example that connects this Vue app to a
-        monday.com board. It reads, create, update, and delete portfolio items!
+        A beginner-friendly CRUD example that connects this Vue app to a monday.com board. It reads, create, update, and delete portfolio items!
       </p>
     </div>
 
@@ -184,7 +183,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 
 // TODO Import service file's functions
-
+import { fetchPortfolioItems } from "../services/portfolioMondayClient";
 /**
  * Reactive State!
  *
