@@ -147,6 +147,7 @@ const mapColumnsValues = (columnValues = []) => {
  * Function to handle returning data from monday.com to display to the user!
  */
 export const fetchPortfolioItems = async () => {
+  // Query is used to GET data
   const query = `
     query GetPortfolioItems($boardId: [ID!]) {
       boards(ids: $boardId) {
@@ -205,4 +206,28 @@ export const fetchPortfolioItems = async () => {
     title: item.name, // monday item.name becomes our Title field (look at the column Id query I posted in Teams!)
     ...mapColumnsValues(item.column_values),
   }));
+};
+
+/**
+ * CREATE
+ * Create a brand new item in monday.com.
+ *
+ * Vue component collects data (the form), this function sends the data to the API.
+ */
+export const createPortfolioItem = async (item) => {
+  // Mutation is used when making a change to the database: CREATE, PUT, PATCH
+    const mutation = `
+    mutation CreatePortfolioItem($boardId: ID!, $itemName: String!, $columnValues: JSON!) {
+      create_item(board_id: $boardId, item_name: $itemName, column_values: $columnValues) {
+        id
+      }
+    }
+  `;
+
+  // Passing the query and the variables needed in the query to our makeRequest() function
+  await makeRequest(mutation, {
+    boardId: config.boardId,
+    itemName: item.title,
+    columnValues: JSON.stringify(toColumnValuesObject(item))
+  });
 };

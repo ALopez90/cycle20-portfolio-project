@@ -183,7 +183,8 @@
 import { computed, onMounted, reactive, ref } from "vue";
 
 // TODO Import service file's functions
-import { fetchPortfolioItems } from "../services/portfolioMondayClient";
+import { fetchPortfolioItems, createPortfolioItem } from "../services/portfolioMondayClient";
+
 /**
  * Reactive State!
  *
@@ -259,6 +260,40 @@ const loadItems = async () => {
   } finally {
     // Even if it's a success or error, STOP the loading!
     isLoading.value = false;
+  }
+};
+
+/**
+ * CREATE + UPDATE
+ * Steps this function takes:
+ * - clear messages
+ * - set as isBusy = true, since we are currently working with the form
+ * - Use try...catch...finally to check for success and error:
+ * ---> Try: If we are currently editing a row (UPDATING), run the function that updates the row's data. Otherwise (else), we are CREATING data, so run the createPortfolioItem() function. Then, clear the form's fields (resetForm() function we created above) and reload the items.
+ * ---> Catch(error): If an error is returned from either the UPDATE or CREATE API, display it OR display our default error message.
+ * ---> Finally: Whether it's a success or error, we want to signal that we are no longer working with the form. We are done. So, set isBusy back to false.
+ */
+const handleSubmit = async () => {
+  resetMessages();
+  isBusy.value = true;
+  try {
+    // Check if we are editing, send the current form values to the update function (DOESNT EXIST YET)
+    if (isEditing.value) {
+      // TODO Add logic
+    }
+    // Assuming we creating a new item using the form values
+    else {
+      await createPortfolioItem({...form});
+      message.value = "Yay! Your new item was a successfully added!"
+    }
+    // Clear form's fields
+    resetForm();
+    // Reload items. Using "await" because we want process to stop here and wait for loadItems() function to finish before continuing.
+    await loadItems();
+  } catch (error) {
+    errorMessage.value = error.message || "Oh no! Your new item did not get added.";
+  } finally {
+    isBusy.value = false;
   }
 };
 
