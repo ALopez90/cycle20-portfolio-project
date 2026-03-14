@@ -8,6 +8,7 @@
     </div>
 
     <div class="pm-layout">
+      <!-- Left panel - the form -->
       <div class="pm-panel pm-form-panel">
         <h3>
           {{ isEditing ? "Edit Portfolio Item" : "Create Portfolio Item" }}
@@ -96,6 +97,7 @@
         </form>
       </div>
 
+      <!-- Right panel - the list of Portfolio Items -->
       <div class="pm-panel pm-list-panel">
         <div class="pm-list-header">
           <div>
@@ -182,8 +184,13 @@
 // ref: stores simple reactive values arrays, booleans, and strings
 import { computed, onMounted, reactive, ref } from "vue";
 
-// TODO Import service file's functions
-import { fetchPortfolioItems, createPortfolioItem } from "../services/portfolioMondayClient";
+// Let's us use the functions we created in portfolioMondayClient.js here!
+import {
+  fetchPortfolioItems,
+  createPortfolioItem,
+  updatePortfolioItem,
+  deletePortfolioItem,
+} from "../services/portfolioMondayClient";
 
 /**
  * Reactive State!
@@ -210,7 +217,7 @@ const createEmptyForm = () => ({
   techStack: "",
   status: "",
   githubLink: "",
-  imageUrl: ""
+  imageUrl: "",
 });
 
 // Hold the values from the inputs in the template above
@@ -256,11 +263,36 @@ const loadItems = async () => {
     message.value = "Yay!! Portfolio items loaded from monday.com!";
   } catch (error) {
     // Error message!
-    errorMessage.value = error.message || "Oh no! :( We did not load the items from monday.com!";
+    errorMessage.value =
+      error.message || "Oh no! :( We did not load the items from monday.com!";
   } finally {
     // Even if it's a success or error, STOP the loading!
     isLoading.value = false;
   }
+};
+
+/**
+ * UPDATE
+ * Loading the values of the item into the form.
+ *
+ * @param item object that holds the item's data
+ */
+const startEdit = (item) => {
+  resetMessages();
+
+  // Updates the value for editingItemId
+  editingItemId.value = item.id;
+
+  // Enters the values of the selected item into the form
+  Object.assign(form, {
+    title: item.title,
+    description: item.description,
+    techStack: item.techStack,
+    status: item.status,
+    githubLink: item.githubLink,
+    imageUrl: item.imageUrl,
+  });
+  message.value = `Loaded "${item.title}" into the form for editing.`;
 };
 
 /**
@@ -272,6 +304,7 @@ const loadItems = async () => {
  * ---> Try: If we are currently editing a row (UPDATING), run the function that updates the row's data. Otherwise (else), we are CREATING data, so run the createPortfolioItem() function. Then, clear the form's fields (resetForm() function we created above) and reload the items.
  * ---> Catch(error): If an error is returned from either the UPDATE or CREATE API, display it OR display our default error message.
  * ---> Finally: Whether it's a success or error, we want to signal that we are no longer working with the form. We are done. So, set isBusy back to false.
+ *
  */
 const handleSubmit = async () => {
   resetMessages();
@@ -279,24 +312,61 @@ const handleSubmit = async () => {
   try {
     // Check if we are editing, send the current form values to the update function (DOESNT EXIST YET)
     if (isEditing.value) {
-      // TODO Add logic
+      await updatePortfolioItem(editingItemId.value, { ...form });
+      message.value = "Yippee! Item was successfully edited!";
     }
     // Assuming we creating a new item using the form values
     else {
-      await createPortfolioItem({...form});
-      message.value = "Yay! Your new item was a successfully added!"
+      await createPortfolioItem({ ...form });
+      message.value = "Yay! Your new item was a successfully added!";
     }
     // Clear form's fields
     resetForm();
     // Reload items. Using "await" because we want process to stop here and wait for loadItems() function to finish before continuing.
     await loadItems();
   } catch (error) {
-    errorMessage.value = error.message || "Oh no! Your new item did not get added.";
+    errorMessage.value =
+      error.message || "Oh no! Your new item did not get added.";
   } finally {
     isBusy.value = false;
   }
 };
 
+// DELETE function!
+// Runs the delete function we defined in the portfolioMondayClient.js
+const handleDelete = async (item) => {
+  // Asks the user if they're certain they want to remove the item
+  const userConfirmation = window.confirm(
+    `Delete "${item.title}"? This removes the item from monday.com board!!`,
+  );
+
+  // If the user cancels, stop here!!
+  if (!userConfirmation) {
+    return;
+  }
+
+  resetMessages();
+  isBusy.value = true;
+
+  try {
+    await deletePortfolioItem(item.id);
+    message.value = "Yay! Portfolio item deleted!";
+
+    // Checks for the case that the user first tried editing the item selected to deleted. If so, clears the form first.
+    if (editingItemId.value === item.id) {
+      resetForm();
+    }
+    // Reload the items
+    await loadItems();
+  } catch (error) {
+    errorMessage.value = error.message || "Error! Failed to delete item";
+  } finally {
+    isBusy.value = false;
+  }
+};
+
+// Loads the items on load of the component
+onMounted(loadItems);
 </script>
 
 <style scoped>
